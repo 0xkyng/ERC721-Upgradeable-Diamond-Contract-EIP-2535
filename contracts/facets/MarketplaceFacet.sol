@@ -2,24 +2,24 @@
 pragma solidity ^0.8.13;
 import "solmate/tokens/ERC721.sol";
 
-import "openzeppelin/interfaces/IERC721.sol";
+// import "openzeppelin-contracts/interfaces/IERC721.sol";
 // "solmate/tokens/ERC721/IERC721.sol";
 import {SignUtils} from "contracts/libraries/SignUtils.sol";
-
-contract Marketplace is ERC721{
+import {LibDiamond} from "contracts/libraries/LibDiamond.sol";
+contract Marketplace {
     
 
 
     /* EVENTS */
-    event CreatedCatalogue(uint256 indexed catalogueId, Catalogue);
-    event ExecutedCatalogue(uint256 indexed catalogueId, Catalogue);
-    event EditedCatalogue(uint256 indexed catalogueId, Catalogue);
+    // event CreatedCatalogue(uint256 indexed catalogueId,LibDiamond.Catalogue);
+    // event ExecutedCatalogue(uint256 indexed catalogueId, Catalogue);
+    // event EditedCatalogue(uint256 indexed catalogueId, Catalogue);
 
 
 
    
     function createCatalogue(LibDiamond.Catalogue calldata c) public returns (uint256) {
-        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
+        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         require(ERC721(c.nftAddress).ownerOf(c.tokenId) == msg.sender, "NOt the owner");
         require(ERC721(c.nftAddress).isApprovedForAll(msg.sender, address(this)), "You don't have approval to sell this nft");
         
@@ -50,14 +50,14 @@ contract Marketplace is ERC721{
         newCatalogue.active = true;
 
         // Emit event
-        emit CreatedCatalogue(s.catalogueId, newCatalogue);
-        uint256 _catalogue = catalogueId;
-        catalogueId++;
+        // emit CreatedCatalogue(s.catalogueId, newCatalogue);
+        uint256 _catalogue = s.catalogueId;
+        s.catalogueId++;
         return _catalogue;
     }
 
     function executeCatalogue(uint256 _catalogueId) public payable {
-        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
+        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
 
         LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
@@ -80,7 +80,7 @@ contract Marketplace is ERC721{
         payable(newCatalogue.creator).transfer(newCatalogue.price);
 
         // Update storage
-        emit ExecutedCatalogue(_catalogueId, newCatalogue);
+        //emit ExecutedCatalogue(_catalogueId, newCatalogue);
     }
 
     function editCatalogue(
@@ -88,7 +88,7 @@ contract Marketplace is ERC721{
         uint256 _newPrice,
         bool _active
     ) public {
-        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
+        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
 
         LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
@@ -96,13 +96,14 @@ contract Marketplace is ERC721{
         require(newCatalogue.creator == msg.sender, "You are not the owner");
         newCatalogue.price = _newPrice;
         newCatalogue.active = _active;
-        emit EditedCatalogue(_catalogueId, newCatalogue);
+        //emit EditedCatalogue(_catalogueId, newCatalogue);
     }
 
     
-    function getCatalogue(
-        uint256 _catalogueId
-    ) public view returns (LibDiamond.Catalogue memory) {
-        return catalogues[_catalogueId];
-    }
+    // function getCatalogue(
+    //     uint256 _catalogueId
+    // ) public view returns (LibDiamond.Catalogue memory) {
+    //     return s.catalogues[_catalogueId];
+    //     //return s.catalogues[_catalogueId];
+    // }
 }

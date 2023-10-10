@@ -17,8 +17,8 @@ contract Diamond {
     constructor(
         address _contractOwner,
          address _diamondCutFacet,
-         string memory tokenName,
-        string memory tokenSymbol
+         string memory name,
+        string memory symbol
          ) payable {
         LibDiamond.setContractOwner(_contractOwner);
 
