@@ -15,12 +15,11 @@ contract Marketplace is ERC721{
     event ExecutedCatalogue(uint256 indexed catalogueId, Catalogue);
     event EditedCatalogue(uint256 indexed catalogueId, Catalogue);
 
-    LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
 
 
    
     function createCatalogue(LibDiamond.Catalogue calldata c) public returns (uint256) {
-        
+        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
         require(ERC721(c.nftAddress).ownerOf(c.tokenId) == msg.sender, "NOt the owner");
         require(ERC721(c.nftAddress).isApprovedForAll(msg.sender, address(this)), "You don't have approval to sell this nft");
         
@@ -58,6 +57,7 @@ contract Marketplace is ERC721{
     }
 
     function executeCatalogue(uint256 _catalogueId) public payable {
+        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
         require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
 
         LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
@@ -88,6 +88,7 @@ contract Marketplace is ERC721{
         uint256 _newPrice,
         bool _active
     ) public {
+        LibDiamond.DiamondStorage s = LibDiamond.diamondStorage();
         require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
 
         LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
