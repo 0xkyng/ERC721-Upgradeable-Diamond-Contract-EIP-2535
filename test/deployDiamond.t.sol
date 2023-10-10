@@ -139,7 +139,21 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
         assertEq(ERC721_Diamond.balanceOf(user1), 3);
     }
 
-    function testERC721Facet_transferFrom() public {}
+    function testERC721Facet_Transfer() public {
+        uint256 tokenId = 211;
+        uint256 tokenId2 = 215;
+        uint256 tokenId3 = 202345;
+
+        ERC721_Diamond.mint(user1, tokenId);
+        ERC721_Diamond.mint(user1, tokenId2);
+        ERC721_Diamond.mint(user1, tokenId3);
+
+        vm.prank(user1);
+        ERC721_Diamond.transferFrom(user1, user2, tokenId);
+
+        assertEq(ERC721_Diamond.balanceOf(user1), 2);
+        assertEq(ERC721_Diamond.balanceOf(user2), 1);
+    } 
 
     function diamondCut(
         FacetCut[] calldata _diamondCut,

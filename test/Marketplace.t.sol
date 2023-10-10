@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Marketplace} from "../src/Marketplace.sol";
-import "../src/ERC721Mock.sol";
+import {Marketplace} from "contracts/facets/MarketplaceFacet.sol";
+
 import "./Helpers.sol";
 
 contract MarketPlaceTest is Helpers {
