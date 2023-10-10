@@ -34,19 +34,19 @@ contract ERC721Facet {
 
     function name() external view returns (string memory) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        return s.name;
+        return s._name;
     }
 
     function symbol() external view returns (string memory) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        return s.symbol;
+        return s._symbol;
     }
 
     function balanceOf(address _owner) external view returns (uint256) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         require(_owner != address(0), "ERC721: Not a Valid Address");
 
-        return s.balances[_owner];
+        return s._balances[_owner];
     }
 
     function ownerOf(uint256 _tokenId) external view returns (address) {
@@ -59,7 +59,7 @@ contract ERC721Facet {
 
     function _ownerOf(uint256 tokenId) internal view returns (address) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        return s.owners[tokenId];
+        return s._owners[tokenId];
     }
 
     function tokenURI(uint256 _tokenId) public view returns (string memory) {
@@ -99,7 +99,7 @@ contract ERC721Facet {
 
     function _approve(address to, uint256 _tokenId) internal virtual {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        s.tokenApproval[_tokenId] = to;
+        s._tokenApproval[_tokenId] = to;
         emit Approval(_ownerOf(_tokenId), to, _tokenId);
     }
 
@@ -108,14 +108,14 @@ contract ERC721Facet {
         address operator
     ) public view returns (bool) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        return s.operatorApprovals[owner][operator];
+        return s._operatorApprovals[owner][operator];
     }
 
     function getApproved(uint256 _tokenId) public view returns (address) {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         _requireMinted(_tokenId);
 
-        return s.tokenApproval[_tokenId];
+        return s._tokenApproval[_tokenId];
     }
 
     function setApprovalForAll(address _operator, bool isApproved) public {
@@ -130,7 +130,7 @@ contract ERC721Facet {
         LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
         require(_owner != _operator, "ERC721: approve to caller");
         // Updates the mapping
-        s.operatorApprovals[_owner][_operator] = _isApproved; // bool false
+        s._operatorApprovals[_owner][_operator] = _isApproved; // bool false
 
         emit ApprovalForAll(_owner, _operator, _isApproved);
     }
@@ -173,17 +173,17 @@ contract ERC721Facet {
         );
 
         // Clear approvals from the previous owner
-        delete s.tokenApproval[_tokenId];
+        delete s._tokenApproval[_tokenId];
 
         unchecked {
             // unchecked, not perform arithmetic overflow and underflow checks,
             // thus arithmetic operations do not revert on underflow or overflow.
 
-            s.balances[_from] -= 1;
-            s.balances[_to] += 1;
+            s._balances[_from] -= 1;
+            s._balances[_to] += 1;
         }
         // Update mapping... mapping(uint256 tokenID => address owner) private owner;
-        s.owners[_tokenId] = _to;
+        s._owners[_tokenId] = _to;
 
         emit Transfer(_from, _to, _tokenId);
 
@@ -303,10 +303,10 @@ contract ERC721Facet {
         require(!_exists(tokenId), "ERC721: token already minted");
 
         unchecked {
-            s.balances[to] += 1;
+            s._balances[to] += 1;
         }
 
-        s.owners[tokenId] = to;
+        s._owners[tokenId] = to;
 
         emit Transfer(address(0), to, tokenId);
 
@@ -322,12 +322,12 @@ contract ERC721Facet {
         owner = _ownerOf(tokenId);
 
         // Clear approvals
-        delete s.tokenApproval[tokenId];
+        delete s._tokenApproval[tokenId];
 
         unchecked {
-            s.balances[owner] -= 1;
+            s._balances[owner] -= 1;
         }
-        delete s.owners[tokenId];
+        delete s._owners[tokenId];
 
         emit Transfer(owner, address(0), tokenId);
 

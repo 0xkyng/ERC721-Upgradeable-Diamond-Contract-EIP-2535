@@ -75,7 +75,7 @@ library LibDiamond {
          mapping(address => uint256)  _balances;
 
         // Mapping from token ID to approved address
-        mapping(uint256 => address)  _tokenApprovals;
+        mapping(uint256 => address)  _tokenApproval;
 
         // Mapping from owner to operator approvals
         mapping(address => mapping(address => bool))  _operatorApprovals;
