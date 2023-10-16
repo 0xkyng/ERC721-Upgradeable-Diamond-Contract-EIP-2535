@@ -22,6 +22,9 @@ contract Diamond {
          ) payable {
         LibDiamond.setContractOwner(_contractOwner);
 
+        LibDiamond.setERC721Details(name, symbol);
+        
+
         // Add the diamondCut external function from the diamondCutFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
         bytes4[] memory functionSelectors = new bytes4[](1);

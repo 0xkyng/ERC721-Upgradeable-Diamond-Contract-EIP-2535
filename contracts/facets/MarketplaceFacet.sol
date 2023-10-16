@@ -1,109 +1,120 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
-import "solmate/tokens/ERC721.sol";
 
-// import "openzeppelin-contracts/interfaces/IERC721.sol";
-// "solmate/tokens/ERC721/IERC721.sol";
-import {SignUtils} from "contracts/libraries/SignUtils.sol";
-import {LibDiamond} from "contracts/libraries/LibDiamond.sol";
+import {LibDiamond, Order} from "../libraries/LibDiamond.sol";
+import {LibSign} from "../libraries/LibSign.sol";
+
+import "contracts/facets/ERC721Facet.sol";
+
 contract Marketplace {
-    
-
+    /* ERRORS */
+    error NotOwner();
+    error NotApproved();
+    error MinPriceTooLow();
+    error DeadlineTooSoon();
+    error MinDurationNotMet();
+    error InvalidSignature();
+    error OrderNotExistent();
+    error OrderNotActive();
+    error PriceNotMet(int256 difference);
+    error OrderExpired();
+    error PriceMismatch(uint256 originalPrice);
 
     /* EVENTS */
-    // event CreatedCatalogue(uint256 indexed catalogueId,LibDiamond.Catalogue);
-    // event ExecutedCatalogue(uint256 indexed catalogueId, Catalogue);
-    // event EditedCatalogue(uint256 indexed catalogueId, Catalogue);
+    event OrderCreated(uint256 indexed orderId, Order);
+    event OrderExecuted(uint256 indexed orderId, Order);
+    event OrderEdited(uint256 indexed orderId, Order);
 
+    constructor() {}
 
-
-   
-    function createCatalogue(LibDiamond.Catalogue calldata c) public returns (uint256) {
-        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        require(ERC721(c.nftAddress).ownerOf(c.tokenId) == msg.sender, "NOt the owner");
-        require(ERC721(c.nftAddress).isApprovedForAll(msg.sender, address(this)), "You don't have approval to sell this nft");
-        
-        require(c.price > (0.01 * 100), "Low price");
-        require(c.deadline > block.timestamp, 'Deadline too short');
+    function createOrder(Order calldata l) public returns (uint256 lId) {
+        if (NFTFacet(l.token).ownerOf(l.tokenId) != msg.sender)
+            revert NotOwner();
+        if (!NFTFacet(l.token).isApprovedForAll(msg.sender, address(this)))
+            revert NotApproved();
+        if (l.price < 0.01 ether) revert MinPriceTooLow();
+        if (l.deadline < block.timestamp) revert DeadlineTooSoon();
+        if (l.deadline - block.timestamp < 60 minutes)
+            revert MinDurationNotMet();
 
         // Assert signature
-        require(SignUtils.isValid(
-                SignUtils.constructMessageHash(
-                    c.nftAddress,
-                    c.tokenId,
-                    c.price,
-                    c.deadline,
-                    c.creator
+        if (
+            !LibSign.isValid(
+                LibSign.constructMessageHash(
+                    l.token,
+                    l.tokenId,
+                    l.price,
+                    l.deadline,
+                    l.owner
                 ),
-                c.signature,
+                l.signature,
                 msg.sender
-            ), "Invalid signsture");
+            )
+        ) revert InvalidSignature();
 
         // append to Storage
-        LibDiamond.Catalogue storage newCatalogue = s.catalogues[s.catalogueId];
-        newCatalogue.nftAddress = c.nftAddress;
-        newCatalogue.tokenId = c.tokenId;
-        newCatalogue.price = c.price;
-        newCatalogue.signature = c.signature;
-        newCatalogue.deadline = uint88(c.deadline);
-        newCatalogue.creator = msg.sender;
-        newCatalogue.active = true;
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        Order storage li = ds.mOrders[ds.mOrderId];
+        li.token = l.token;
+        li.tokenId = l.tokenId;
+        li.price = l.price;
+        li.signature = l.signature;
+        li.deadline = uint88(l.deadline);
+        li.owner = msg.sender;
+        li.active = true;
 
         // Emit event
-        // emit CreatedCatalogue(s.catalogueId, newCatalogue);
-        uint256 _catalogue = s.catalogueId;
-        s.catalogueId++;
-        return _catalogue;
+        emit OrderCreated(ds.mOrderId, l);
+        lId = ds.mOrderId;
+        ds.mOrderId++;
+        return lId;
     }
 
-    function executeCatalogue(uint256 _catalogueId) public payable {
-        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
-
-        LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
-
-        require(newCatalogue.deadline > block.timestamp, "Expired catalogue");
-        require(newCatalogue.active, "Inactive catalogue");
-        require(newCatalogue.price == msg.value, "Inappriopriate price");
+    function executeOrder(uint256 _orderId) public payable {
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        if (_orderId >= ds.mOrderId) revert OrderNotExistent();
+        Order storage order = ds.mOrders[_orderId];
+        if (order.deadline < block.timestamp) revert OrderExpired();
+        if (!order.active) revert OrderNotActive();
+        if (order.price < msg.value) revert PriceMismatch(order.price);
+        if (order.price != msg.value)
+            revert PriceNotMet(int256(order.price) - int256(msg.value));
 
         // Update state
-        newCatalogue.active = false;
+        order.active = false;
 
         // transfer
-        ERC721(newCatalogue.nftAddress).transferFrom(
-            newCatalogue.creator,
+        NFTFacet(order.token).transferFrom(
+            order.owner,
             msg.sender,
-            newCatalogue.tokenId
+            order.tokenId
         );
 
         // transfer eth
-        payable(newCatalogue.creator).transfer(newCatalogue.price);
+        payable(order.owner).transfer(order.price);
 
         // Update storage
-        //emit ExecutedCatalogue(_catalogueId, newCatalogue);
+        emit OrderExecuted(_orderId, order);
     }
 
-    function editCatalogue(
-        uint256 _catalogueId,
+    function editOrder(
+        uint256 _orderId,
         uint256 _newPrice,
         bool _active
     ) public {
-        LibDiamond.DiamondStorage storage s = LibDiamond.diamondStorage();
-        require(_catalogueId <= s.catalogueId, "Catalogue does not exist");
-
-        LibDiamond.Catalogue storage newCatalogue = s.catalogues[_catalogueId];
-    
-        require(newCatalogue.creator == msg.sender, "You are not the owner");
-        newCatalogue.price = _newPrice;
-        newCatalogue.active = _active;
-        //emit EditedCatalogue(_catalogueId, newCatalogue);
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        if (_orderId >= ds.mOrderId) revert OrderNotExistent();
+        Order storage order = ds.mOrders[_orderId];
+        if (order.owner != msg.sender) revert NotOwner();
+        order.price = _newPrice;
+        order.active = _active;
+        emit OrderEdited(_orderId, order);
     }
 
-    
-    // function getCatalogue(
-    //     uint256 _catalogueId
-    // ) public view returns (LibDiamond.Catalogue memory) {
-    //     return s.catalogues[_catalogueId];
-    //     //return s.catalogues[_catalogueId];
-    // }
+    // add getter for order
+    function getOrder(uint256 _orderId) public view returns (Order memory) {
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        // if (_orderId >= orderId)
+        return ds.mOrders[_orderId];
+    }
 }

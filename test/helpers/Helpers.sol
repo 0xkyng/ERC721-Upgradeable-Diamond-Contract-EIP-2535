@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import "contracts/libraries/SignUtils.sol";
+
 
 abstract contract Helpers is Test {
     // uint256 user
@@ -10,11 +10,12 @@ abstract contract Helpers is Test {
         string memory name
     ) public returns (address addr, uint256 privateKey) {
         privateKey = uint256(keccak256(abi.encodePacked(name)));
+        // address addr = address(uint160(uint256(keccak256(abi.encodePacked(name)))))
         addr = vm.addr(privateKey);
         vm.label(addr, name);
     }
 
-    function createSig(
+    function constructSig(
         address _token,
         uint256 _tokenId,
         uint256 _price,
@@ -42,7 +43,7 @@ abstract contract Helpers is Test {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    function changeSigner(address _newSigner) public {
+    function switchSigner(address _newSigner) public {
         vm.startPrank(_newSigner);
         vm.deal(_newSigner, 3 ether);
         vm.label(_newSigner, "USER");

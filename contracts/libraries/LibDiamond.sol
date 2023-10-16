@@ -23,6 +23,8 @@ library LibDiamond {
     error NonEmptyCalldata();
     error EmptyCalldata();
     error InitCallFailed();
+
+    
     bytes32 constant DIAMOND_STORAGE_POSITION =
         keccak256("diamond.standard.diamond.storage");
 
@@ -84,6 +86,7 @@ library LibDiamond {
         mapping(uint256 => Catalogue) catalogues;
     
         uint256  catalogueId;
+        address token;
   
     }
 
@@ -108,6 +111,17 @@ library LibDiamond {
         address previousOwner = ds.contractOwner;
         ds.contractOwner = _newOwner;
         emit OwnershipTransferred(previousOwner, _newOwner);
+    }
+
+    function setERC721Details(string memory _name, string memory _symbol) internal {
+        DiamondStorage storage s = diamondStorage();
+        s._name = _name;
+        s._symbol = _symbol;
+    }
+
+    function setMarketplaceDetails(address _token) public {
+        DiamondStorage storage s = diamondStorage();
+        s.token = _token;
     }
 
     function contractOwner() internal view returns (address contractOwner_) {

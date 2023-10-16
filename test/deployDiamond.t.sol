@@ -17,6 +17,7 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
     OwnershipFacet ownerFacet;
     ERC721Facet erc721Facet;
     ERC721Facet ERC721_Diamond;
+    address marketAddress ;
 
     string name = "ERC721_DIAMOND";
     string symbol = "ECR721";
